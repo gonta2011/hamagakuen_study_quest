@@ -124,30 +124,57 @@
 
       <section id="growthView" class="view">
         <div class="section-head"><h2>おへや</h2><span class="pill" id="roomLevel">Lv.1</span></div>
-        <div class="room card">
+
+        <div class="room card growth-room">
           <img class="room-scene" src="assets/study-buddies-room.png" alt="うさぎとパンダのおへや" />
+          <div id="roomDecorations" class="room-decorations" aria-label="集めたおへやアイテム"></div>
+        </div>
+
+        <div class="buddy-growth-grid">
+          <div class="buddy-growth card bunny-growth">
+            <img src="assets/bunny-happy.png" alt="うさぎ" />
+            <div class="buddy-growth-copy">
+              <div class="buddy-title"><strong>うさぎ</strong><span id="bunnyLevel">Lv.1</span></div>
+              <p>「できた！」でぐんぐん成長</p>
+              <div class="buddy-progress"><div id="bunnyProgress"></div></div>
+              <small id="bunnyNext">あと 0 pt</small>
+            </div>
+          </div>
+          <div class="buddy-growth card panda-growth">
+            <img src="assets/panda-happy.png" alt="パンダ" />
+            <div class="buddy-growth-copy">
+              <div class="buddy-title"><strong>パンダ</strong><span id="pandaLevel">Lv.1</span></div>
+              <p>「挑戦した！」で元気に成長</p>
+              <div class="buddy-progress"><div id="pandaProgress"></div></div>
+              <small id="pandaNext">あと 0 pt</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="friendship card">
+          <div class="friendship-head">
+            <div>
+              <p class="eyebrow">FRIENDSHIP</p>
+              <h3>ふたりの なかよし度</h3>
+            </div>
+            <span id="friendshipLevel" class="friendship-level">Lv.1</span>
+          </div>
+          <div class="friendship-bar"><div id="friendshipProgress"></div></div>
+          <div class="friendship-foot"><span id="friendshipHearts">♡♡♡♡♡</span><small id="friendshipNext">あと 0 pt</small></div>
+          <p id="friendshipMessage" class="mini-copy friendship-message"></p>
+        </div>
+
+        <div class="card collection-card">
+          <div class="gallery-head">
+            <h3>あつめた ごほうび</h3>
+            <span class="pill small" id="collectionCount">0/6</span>
+          </div>
+          <div id="collectionGrid" class="collection-grid"></div>
         </div>
 
         <div class="card unlocks">
           <h3>つぎのごほうび</h3>
           <div id="nextUnlock"></div>
-        </div>
-
-        <div class="gallery-grid">
-          <div class="gallery card">
-            <div class="gallery-head">
-              <h3>うさぎの表情</h3>
-              <span class="pill small">4ポーズ</span>
-            </div>
-            <img src="assets/bunny-sheet.png" alt="うさぎキャラクター表情集" />
-          </div>
-          <div class="gallery card">
-            <div class="gallery-head">
-              <h3>パンダの表情</h3>
-              <span class="pill small">4ポーズ</span>
-            </div>
-            <img src="assets/panda-sheet.png" alt="パンダキャラクター表情集" />
-          </div>
         </div>
 
         <div class="badges">
@@ -282,6 +309,22 @@
         <li>「ホーム画面に追加」→「追加」</li>
       </ol>
       <p class="muted">追加後は、通常のアプリに近い見た目で起動できます。</p>
+    </form>
+  </dialog>
+
+
+  <dialog id="celebrationDialog">
+    <form method="dialog" class="dialog-card celebration-card">
+      <button type="button" class="close-x" aria-label="閉じる">×</button>
+      <div class="celebration-sparkles">✦　♡　✧　★　♡　✦</div>
+      <div class="celebration-buddies">
+        <img src="assets/bunny-cheer.png" alt="よろこぶうさぎ" />
+        <img src="assets/panda-cheer.png" alt="よろこぶパンダ" />
+      </div>
+      <p class="eyebrow">QUEST CLEAR!</p>
+      <h2>今日のおすすめ、ぜんぶできた！</h2>
+      <p class="celebration-copy">うさぎもパンダも大よろこび。<br>コツコツ続けた分だけ、おへやとなかよし度が育つよ。</p>
+      <button type="button" id="celebrationOk" class="primary-btn celebration-ok">やった！</button>
     </form>
   </dialog>
 

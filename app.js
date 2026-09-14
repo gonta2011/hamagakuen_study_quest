@@ -63,6 +63,7 @@ function migrateState(input){
   st.history=Array.isArray(st.history)?st.history:[];
   st.tasks=Array.isArray(st.tasks)?st.tasks:[];
   if(!st.dailyPlan||typeof st.dailyPlan!=="object")st.dailyPlan=null;
+  if(!Array.isArray(st.celebratedDates))st.celebratedDates=[];
   st.tasks=st.tasks.map(t=>{
     const x={...t};
     x.mastered=Boolean(x.mastered||x.status==="定着");
@@ -197,15 +198,87 @@ function render(){
   document.querySelector("#allTasks").innerHTML=filtered.map(t=>taskCard(t,false)).join("")||`<div class="empty card">まだ問題がありません。</div>`;
   renderGrowth();renderParent();bindTaskButtons();
 }
+
+function growthStats(){
+  const hist=Array.isArray(state.history)?state.history:[];
+  let bunny=0,panda=0;
+  hist.forEach(h=>{
+    if(h.result==="excellent"){bunny+=14;panda+=8}
+    else if(h.result==="good"){bunny+=10;panda+=8}
+    else if(h.result==="hint"){bunny+=6;panda+=12}
+    else if(h.result==="wrong"){bunny+=4;panda+=10}
+  });
+  const mastered=state.tasks.filter(t=>t.mastered).length;
+  bunny+=mastered*8;
+  panda+=Math.max(0,Number(state.streak||0))*5;
+  const perLevel=100;
+  const levelOf=p=>Math.floor(p/perLevel)+1;
+  const pctOf=p=>Math.min(100,(p%perLevel));
+  const nextOf=p=>perLevel-(p%perLevel||0);
+  const friendshipPoints=Math.floor((bunny+panda)/2)+Math.max(0,Number(state.streak||0))*6;
+  const friendshipLevel=Math.floor(friendshipPoints/120)+1;
+  const friendshipPct=Math.min(100,Math.round((friendshipPoints%120)/120*100));
+  return{bunny,panda,bunnyLevel:levelOf(bunny),pandaLevel:levelOf(panda),bunnyPct:pctOf(bunny),pandaPct:pctOf(panda),bunnyNext:nextOf(bunny),pandaNext:nextOf(panda),friendshipPoints,friendshipLevel,friendshipPct,friendshipNext:120-(friendshipPoints%120||0),mastered,historyCount:hist.length};
+}
+function collectionItems(stats=growthStats()){
+  return[
+    {id:"first",icon:"🌟",name:"はじめの星",detail:"最初の1問を記録",unlocked:stats.historyCount>=1},
+    {id:"ribbon",icon:"🎀",name:"3日リボン",detail:"3日れんぞく",unlocked:Number(state.streak||0)>=3},
+    {id:"book",icon:"📚",name:"定着ブック",detail:"3問を定着",unlocked:stats.mastered>=3},
+    {id:"flower",icon:"🌷",name:"努力のお花",detail:"300 XP",unlocked:Number(state.xp||0)>=300},
+    {id:"crown",icon:"👑",name:"7日クラウン",detail:"7日れんぞく",unlocked:Number(state.streak||0)>=7},
+    {id:"moon",icon:"🌙",name:"ひみつの月",detail:"10問を定着",unlocked:stats.mastered>=10}
+  ];
+}
+function maybeCelebrateDailyPlan(){
+  const plan=ensureDailyPlan();
+  if(!plan||!plan.taskIds||plan.taskIds.length===0)return;
+  const today=todayKey();
+  const completed=todayCompletedTaskIds();
+  const allDone=plan.taskIds.every(id=>completed.has(id));
+  if(!allDone)return;
+  if(!Array.isArray(state.celebratedDates))state.celebratedDates=[];
+  if(state.celebratedDates.includes(today))return;
+  state.celebratedDates.push(today);
+  if(state.celebratedDates.length>60)state.celebratedDates=state.celebratedDates.slice(-60);
+  saveState();
+  const dlg=document.querySelector("#celebrationDialog");
+  if(dlg&&!dlg.open)setTimeout(()=>dlg.showModal(),180);
+}
+
 function renderGrowth(){
-  const level=getLevel();
-  const unlocks=[{level:2,icon:"📚",name:"本棚"},{level:3,icon:"☁",name:"ふわふわクッション"},{level:4,icon:"🌿",name:"観葉植物"},{level:5,icon:"✨",name:"きらきらライト"}];
-  const next=unlocks.find(u=>u.level>level)||{level:level+1,icon:"🎁",name:"ひみつのごほうび"};
-  const targetXp=(next.level-1)*100,prevXp=Math.max(0,(next.level-2)*100),pct=Math.max(0,Math.min(100,((state.xp-prevXp)/(targetXp-prevXp))*100));
-  const nextUnlock=document.querySelector("#nextUnlock");if(nextUnlock)nextUnlock.innerHTML=`<div class="unlock-row"><div class="unlock-icon">${next.icon}</div><div class="unlock-bar"><strong>Lv.${next.level} ${next.name}</strong><div class="progress"><div style="width:${pct}%"></div></div><div class="mini-copy">あと ${Math.max(0,targetXp-state.xp)} XP</div></div></div>`;
-  const hasHistory=state.history.length>0,aExcellent=state.tasks.some(t=>t.level==="A"&&(t.mastered||t.lastResult==="excellent"));
+  const level=getLevel(),stats=growthStats(),items=collectionItems(stats);
+  document.querySelector("#bunnyLevel").textContent=`Lv.${stats.bunnyLevel}`;
+  document.querySelector("#pandaLevel").textContent=`Lv.${stats.pandaLevel}`;
+  document.querySelector("#bunnyProgress").style.width=`${stats.bunnyPct}%`;
+  document.querySelector("#pandaProgress").style.width=`${stats.pandaPct}%`;
+  document.querySelector("#bunnyNext").textContent=`次のLv.まで あと ${stats.bunnyNext} pt`;
+  document.querySelector("#pandaNext").textContent=`次のLv.まで あと ${stats.pandaNext} pt`;
+  document.querySelector("#friendshipLevel").textContent=`Lv.${stats.friendshipLevel}`;
+  document.querySelector("#friendshipProgress").style.width=`${stats.friendshipPct}%`;
+  document.querySelector("#friendshipNext").textContent=`次のなかよしLv.まで あと ${stats.friendshipNext} pt`;
+  const hearts=Math.max(1,Math.min(5,Math.ceil(stats.friendshipPct/20)));
+  document.querySelector("#friendshipHearts").textContent="♥".repeat(hearts)+"♡".repeat(5-hearts);
+  const msg=stats.friendshipLevel>=5?"ふたりは最高の勉強仲間！これからも一緒に進もう。":stats.friendshipLevel>=3?"かなり仲良しになってきたよ。毎日のコツコツが効いてる！":"一問ずつ進めるたびに、ふたりも少しずつ仲良くなるよ。";
+  document.querySelector("#friendshipMessage").textContent=msg;
+
+  const unlocked=items.filter(i=>i.unlocked);
+  document.querySelector("#collectionCount").textContent=`${unlocked.length}/${items.length}`;
+  document.querySelector("#collectionGrid").innerHTML=items.map(i=>`<div class="collection-item ${i.unlocked?"unlocked":"locked"}"><div class="collection-icon">${i.unlocked?i.icon:"🔒"}</div><strong>${i.name}</strong><small>${i.detail}</small></div>`).join("");
+  document.querySelector("#roomDecorations").innerHTML=unlocked.map(i=>`<span title="${i.name}">${i.icon}</span>`).join("");
+
+  const next=items.find(i=>!i.unlocked);
+  const nextUnlock=document.querySelector("#nextUnlock");
+  if(next){
+    nextUnlock.innerHTML=`<div class="unlock-row"><div class="unlock-icon">🎁</div><div class="unlock-bar"><strong>${next.name}</strong><div class="progress"><div style="width:${Math.min(92,unlocked.length/items.length*100)}%"></div></div><div class="mini-copy">条件：${next.detail}</div></div></div>`;
+  }else{
+    nextUnlock.innerHTML=`<div class="unlock-row"><div class="unlock-icon">💝</div><div class="unlock-bar"><strong>ぜんぶ集まった！</strong><div class="mini-copy">すごい！ おへやのごほうびをコンプリート。</div></div></div>`;
+  }
+  const hasHistory=stats.historyCount>0,aExcellent=state.tasks.some(t=>t.level==="A"&&(t.mastered||t.lastResult==="excellent"));
   const badgeFirst=document.querySelector("#badgeFirst"),badgeStreak=document.querySelector("#badgeStreak"),badgeMaster=document.querySelector("#badgeMaster");
-  if(badgeFirst)badgeFirst.classList.toggle("unlocked",hasHistory);if(badgeStreak)badgeStreak.classList.toggle("unlocked",state.streak>=3);if(badgeMaster)badgeMaster.classList.toggle("unlocked",aExcellent);
+  if(badgeFirst)badgeFirst.classList.toggle("unlocked",hasHistory);
+  if(badgeStreak)badgeStreak.classList.toggle("unlocked",state.streak>=3);
+  if(badgeMaster)badgeMaster.classList.toggle("unlocked",aExcellent);
 }
 function renderParent(){
   const redo=state.tasks.filter(t=>!t.mastered&&["直し待ち","理解不十分","翌日確認"].includes(t.status)).length;
@@ -219,7 +292,7 @@ function bindTaskButtons(){document.querySelectorAll("[data-task]").forEach(btn=
 
 document.querySelectorAll(".nav-btn").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("active"));document.querySelectorAll(".view").forEach(v=>v.classList.remove("active"));btn.classList.add("active");document.querySelector(`#${btn.dataset.view}`).classList.add("active");window.scrollTo({top:0,behavior:"smooth"})}));
 document.querySelectorAll("#subjectFilters .chip").forEach(btn=>btn.addEventListener("click",()=>{document.querySelectorAll("#subjectFilters .chip").forEach(b=>b.classList.remove("active"));btn.classList.add("active");filterSubject=btn.dataset.subject;render()}));
-document.querySelectorAll("[data-result]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();applyResult(btn.dataset.result);document.querySelector("#resultDialog").close()}));
+document.querySelectorAll("[data-result]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();applyResult(btn.dataset.result);document.querySelector("#resultDialog").close();maybeCelebrateDailyPlan()}));
 
 function nextReviewForSuccess(t){
   const stage=Number.isInteger(t.reviewStage)?t.reviewStage:-1;
@@ -273,3 +346,5 @@ document.querySelectorAll(".close-x").forEach(btn=>{
     if(dialog) dialog.close();
   });
 });
+
+const celebrationOk=document.querySelector("#celebrationOk");if(celebrationOk)celebrationOk.addEventListener("click",()=>{const d=document.querySelector("#celebrationDialog");if(d)d.close()});
