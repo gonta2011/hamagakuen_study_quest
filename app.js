@@ -62,6 +62,7 @@ function migrateState(input){
   st.lastStudyDate=st.lastStudyDate||"";
   st.history=Array.isArray(st.history)?st.history:[];
   st.tasks=Array.isArray(st.tasks)?st.tasks:[];
+  if(!st.dailyPlan||typeof st.dailyPlan!=="object")st.dailyPlan=null;
   st.tasks=st.tasks.map(t=>{
     const x={...t};
     x.mastered=Boolean(x.mastered||x.status==="定着");
@@ -100,6 +101,48 @@ function overdueCount(){const today=todayKey();return state.tasks.filter(t=>!t.m
 function weekCount(){const today=todayKey(),end=addDaysISO(today,7);return state.tasks.filter(t=>!t.mastered&&parseLocalDate(t.nextReviewDate)&&t.nextReviewDate>today&&t.nextReviewDate<=end).length}
 function overdueDays(t){return t.mastered||!t.nextReviewDate?0:Math.max(0,diffDays(t.nextReviewDate,todayKey()))}
 function effectivePriority(t){return Number(t.priority||0)+Math.min(20,overdueDays(t)*2)}
+
+function sundayOrdinal(date){return Math.floor((date.getDate()-1)/7)+1}
+function getLoadProfile(date=parseLocalDate(todayKey())||new Date()){
+  const dow=date.getDay();
+  if(dow===1)return{key:"mon",day:"月曜日",label:"ふつう",schedule:"ピアノ 16:40–17:30",maxTasks:5,minutes:30,note:"通塾がないので、Aレベルの直しと再確認をバランスよく進める日です。",mascot:"assets/bunny-cheer.png"};
+  if(dow===2)return{key:"tue",day:"火曜日",label:"かなり軽め",schedule:"国語 17:00–18:50／算数2nd 19:10–21:00",maxTasks:2,minutes:15,note:"授業が長い日。期限到来の中から最優先だけに絞ります。",mascot:"assets/panda-calm.png"};
+  if(dow===3)return{key:"wed",day:"水曜日",label:"しっかり復習",schedule:"通塾なし",maxTasks:6,minutes:40,note:"前日の直しや、3日後・7日後確認を進める中心日です。",mascot:"assets/bunny-happy.png"};
+  if(dow===4)return{key:"thu",day:"木曜日",label:"かなり軽め",schedule:"理科 17:00–18:50／社会 19:10–21:00",maxTasks:2,minutes:15,note:"授業が長いので、Aレベルの未直しを優先して少量にします。",mascot:"assets/panda-calm.png"};
+  if(dow===5)return{key:"fri",day:"金曜日",label:"最小限",schedule:"最レ算数 17:30–21:10",maxTasks:1,minutes:10,note:"負荷が最も高い日。復習は最優先の1問だけで十分です。",mascot:"assets/panda-worried.png"};
+  if(dow===6)return{key:"sat",day:"土曜日",label:"軽め",schedule:"算数1st",maxTasks:3,minutes:20,note:"授業日に合わせ、未直しと定着確認を少量だけ進めます。",mascot:"assets/bunny-calm.png"};
+  const nth=sundayOrdinal(date);
+  if(nth===2)return{key:"sun-public",day:"日曜日",label:"最小限",schedule:"公開 13:35–16:55／バド 17:30–18:30",maxTasks:1,minutes:10,note:"公開の日はテストを最優先。復習は最重要の1問だけにします。",mascot:"assets/panda-worried.png"};
+  if(nth===1||nth===3)return{key:"sun-saile",day:"日曜日",label:"かなり軽め",schedule:"最レ国語 10:00–12:00／バド 17:30–18:30",maxTasks:2,minutes:15,note:"最レ国語のある日は、期限到来の上位2問までに絞ります。",mascot:"assets/bunny-calm.png"};
+  return{key:"sun-light",day:"日曜日",label:"軽め",schedule:"バド 17:30–18:30",maxTasks:4,minutes:25,note:"通塾の少ない日曜なので、積み残しを少し回収できます。",mascot:"assets/bunny-happy.png"};
+}
+function ensureDailyPlan(){
+  const today=todayKey(),profile=getLoadProfile();
+  let changed=false;
+  if(!state.dailyPlan||state.dailyPlan.date!==today){
+    state.dailyPlan={date:today,profileKey:profile.key,capacity:profile.maxTasks,minutes:profile.minutes,taskIds:[]};
+    changed=true;
+  }
+  state.dailyPlan.capacity=profile.maxTasks;
+  state.dailyPlan.minutes=profile.minutes;
+  state.dailyPlan.profileKey=profile.key;
+  const validIds=new Set(state.tasks.map(t=>t.id));
+  const before=state.dailyPlan.taskIds.length;
+  state.dailyPlan.taskIds=state.dailyPlan.taskIds.filter(id=>validIds.has(id));
+  if(before!==state.dailyPlan.taskIds.length)changed=true;
+  const existing=new Set(state.dailyPlan.taskIds);
+  const candidates=state.tasks.filter(t=>isDue(t)&&!existing.has(t.id)).sort((a,b)=>effectivePriority(b)-effectivePriority(a)||String(a.nextReviewDate).localeCompare(String(b.nextReviewDate)));
+  while(state.dailyPlan.taskIds.length<profile.maxTasks&&candidates.length){
+    state.dailyPlan.taskIds.push(candidates.shift().id);changed=true;
+  }
+  if(changed)saveState();
+  return state.dailyPlan;
+}
+function plannedTasksForToday(){
+  const plan=ensureDailyPlan();
+  return plan.taskIds.map(id=>state.tasks.find(t=>t.id===id)).filter(Boolean);
+}
+
 function escapeHTML(s=""){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[c]))}
 function dueInfo(t){
   if(t.mastered)return{label:"定着",cls:"mastered"};
@@ -117,26 +160,39 @@ function taskCard(t,compact=false){
 }
 function todayCompletedTaskIds(){return new Set(state.history.filter(h=>h.date===todayKey()).map(h=>h.taskId))}
 function render(){
-  const outstanding=todaysTasks();
+  const dueAll=todaysTasks();
+  const profile=getLoadProfile();
+  const plan=ensureDailyPlan();
+  const planned=plannedTasksForToday();
   const completedIds=todayCompletedTaskIds();
-  const completedCount=completedIds.size;
-  const total=outstanding.length+completedCount;
-  document.querySelector("#todayDone").textContent=completedCount;
+  const doneCount=planned.filter(t=>completedIds.has(t.id)).length;
+  const total=planned.length;
+  const planIds=new Set(plan.taskIds);
+  const backlog=dueAll.filter(t=>!planIds.has(t.id)).length;
+  document.querySelector("#todayDone").textContent=doneCount;
   document.querySelector("#todayTotal").textContent=total;
-  document.querySelector("#todayProgress").style.width=`${total?(completedCount/total)*100:100}%`;
+  document.querySelector("#todayProgress").style.width=`${total?(doneCount/total)*100:100}%`;
   const overdue=overdueCount();
-  document.querySelector("#homeMessage").textContent=overdue>0?`期限を過ぎた復習が ${overdue} 問あります。上から順に進めよう。`:outstanding.length===0?"今日の復習は完了です。":"上から1問ずつでOK。";
+  document.querySelector("#homeMessage").textContent=total===0?"今日のおすすめ復習はありません。":doneCount===total?"今日のおすすめクエスト、ぜんぶクリア！":backlog>0?`期限到来は ${dueAll.length} 問。今日は上位 ${total} 問に絞ります。`:"上から1問ずつでOK。";
   document.querySelector("#level").textContent=getLevel();
   document.querySelector("#xp").textContent=state.xp;
   document.querySelector("#streak").textContent=state.streak;
   document.querySelector("#roomLevel").textContent=`Lv.${getLevel()}`;
   document.querySelector("#currentDateLabel").textContent=formatJPDate(todayKey(),true);
-  document.querySelector("#scheduleToday").textContent=outstanding.length;
+  document.querySelector("#scheduleToday").textContent=dueAll.length;
   document.querySelector("#scheduleTomorrow").textContent=scheduledCount(addDaysISO(todayKey(),1));
   document.querySelector("#scheduleWeek").textContent=weekCount();
   document.querySelector("#scheduleOverdue").textContent=overdue;
-  const sortedToday=[...outstanding].sort((a,b)=>effectivePriority(b)-effectivePriority(a)||String(a.nextReviewDate).localeCompare(String(b.nextReviewDate)));
-  document.querySelector("#topTasks").innerHTML=sortedToday.slice(0,6).map(t=>taskCard(t,true)).join("")||`<div class="empty card">今日の復習対象はありません。</div>`;
+  document.querySelector("#loadDayLabel").textContent=profile.day;
+  document.querySelector("#loadLabel").textContent=profile.label;
+  document.querySelector("#loadSchedule").textContent=profile.schedule;
+  document.querySelector("#loadTarget").textContent=`上限 ${profile.maxTasks}問`;
+  document.querySelector("#loadPlanCount").textContent=`${total}問`;
+  document.querySelector("#loadMinutes").textContent=`${profile.minutes}分`;
+  document.querySelector("#loadBacklog").textContent=`${backlog}問`;
+  document.querySelector("#loadNote").textContent=profile.note;
+  const mascot=document.querySelector("#dailyLoadMascot");if(mascot)mascot.src=profile.mascot;
+  document.querySelector("#topTasks").innerHTML=planned.map(t=>taskCard(t,true)).join("")||`<div class="empty card">今日のおすすめ復習はありません。</div>`;
   const filtered=state.tasks.filter(t=>filterSubject==="すべて"||t.subject===filterSubject).sort((a,b)=>(a.mastered-b.mastered)||String(a.nextReviewDate||"9999").localeCompare(String(b.nextReviewDate||"9999"))||effectivePriority(b)-effectivePriority(a));
   document.querySelector("#allTasks").innerHTML=filtered.map(t=>taskCard(t,false)).join("")||`<div class="empty card">まだ問題がありません。</div>`;
   renderGrowth();renderParent();bindTaskButtons();
@@ -154,7 +210,7 @@ function renderGrowth(){
 function renderParent(){
   const redo=state.tasks.filter(t=>!t.mastered&&["直し待ち","理解不十分","翌日確認"].includes(t.status)).length;
   const aPending=state.tasks.filter(t=>t.level==="A"&&!t.mastered).length,mastered=state.tasks.filter(t=>t.mastered).length;
-  document.querySelector("#metricRedo").textContent=redo;document.querySelector("#metricA").textContent=aPending;document.querySelector("#metricToday").textContent=todaysTasks().length;document.querySelector("#metricOverdue").textContent=overdueCount();document.querySelector("#metricMastered").textContent=mastered;
+  document.querySelector("#metricRedo").textContent=redo;document.querySelector("#metricA").textContent=aPending;document.querySelector("#metricToday").textContent=plannedTasksForToday().length;document.querySelector("#metricOverdue").textContent=overdueCount();document.querySelector("#metricMastered").textContent=mastered;
   const groups={};state.tasks.filter(t=>!t.mastered).forEach(t=>{const key=`${t.subject}・${t.unit}`;if(!groups[key])groups[key]={count:0,score:0};groups[key].count++;groups[key].score+=effectivePriority(t)});
   const weak=Object.entries(groups).map(([name,v])=>({name,score:Math.round(v.score/v.count),count:v.count})).sort((a,b)=>b.score-a.score).slice(0,5);
   document.querySelector("#weakUnits").innerHTML=weak.length?weak.map(w=>`<div class="weak-row"><div><strong>${escapeHTML(w.name)}</strong><div class="mini-copy">未完了 ${w.count}問</div></div><div class="weak-score">${w.score}</div></div>`).join(""):`<div class="empty">要注意単元はありません。</div>`;

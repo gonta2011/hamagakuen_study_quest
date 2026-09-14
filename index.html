@@ -43,6 +43,29 @@
           <div class="stat card"><span>連続</span><strong><span id="streak">0</span>日</strong></div>
         </div>
 
+
+        <div class="daily-load card">
+          <div class="daily-load-art">
+            <img id="dailyLoadMascot" src="assets/bunny-cheer.png" alt="今日の学習を応援するうさぎ" />
+          </div>
+          <div class="daily-load-main">
+            <div class="schedule-title-row">
+              <div>
+                <p class="eyebrow">TODAY'S PACE</p>
+                <h3><span id="loadDayLabel"></span>・<span id="loadLabel"></span></h3>
+              </div>
+              <span id="loadTarget" class="pill load-pill"></span>
+            </div>
+            <p class="daily-schedule"><strong>今日の予定：</strong><span id="loadSchedule"></span></p>
+            <div class="load-metrics">
+              <div><span>おすすめ</span><strong id="loadPlanCount">0問</strong></div>
+              <div><span>目安時間</span><strong id="loadMinutes">0分</strong></div>
+              <div><span>待機</span><strong id="loadBacklog">0問</strong></div>
+            </div>
+            <p id="loadNote" class="mini-copy"></p>
+          </div>
+        </div>
+
         <div class="schedule-summary card">
           <div class="schedule-title-row">
             <div>
@@ -158,6 +181,22 @@
             <li>×は翌日、○は間隔を延ばして再確認。</li>
             <li>重い通塾日は、上位1〜3問だけでもOK。</li>
           </ul>
+        </div>
+
+
+        <div class="card parent-card weekly-load-card">
+          <h3>曜日ごとの復習量</h3>
+          <p class="mini-copy">通塾や習い事が重い日は、期限が来た問題を全部出さず、優先度の高い問題だけを「今日のおすすめ」にします。未選択の問題は消えず、翌日以降も優先度を保ちます。</p>
+          <div class="weekly-load-table">
+            <div><strong>月</strong><span>5問・30分</span><small>ピアノ</small></div>
+            <div><strong>火</strong><span>2問・15分</span><small>国語＋算数2nd</small></div>
+            <div><strong>水</strong><span>6問・40分</span><small>しっかり復習</small></div>
+            <div><strong>木</strong><span>2問・15分</span><small>理科＋社会</small></div>
+            <div><strong>金</strong><span>1問・10分</span><small>最レ算数</small></div>
+            <div><strong>土</strong><span>3問・20分</span><small>算数1st</small></div>
+            <div><strong>日</strong><span>1〜4問</span><small>週により自動調整</small></div>
+          </div>
+          <p class="mini-copy sunday-rule">日曜：第1・3週＝最レ国語で2問／第2週＝公開で1問／第4・5週＝4問を目安にします。</p>
         </div>
 
         <div class="card parent-card data-card">
