@@ -209,3 +209,11 @@ document.querySelector("#resetBtn").onclick=()=>{if(confirm("試作データに�
 function showToast(msg){const el=document.querySelector("#toast");el.textContent=msg;el.classList.add("show");clearTimeout(showToast.t);showToast.t=setTimeout(()=>el.classList.remove("show"),2300)}
 if("serviceWorker" in navigator)window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(()=>{}));
 render();
+
+// Dialog close buttons must never trigger form validation.
+document.querySelectorAll(".close-x").forEach(btn=>{
+  btn.addEventListener("click",()=>{
+    const dialog=btn.closest("dialog");
+    if(dialog) dialog.close();
+  });
+});
