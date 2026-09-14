@@ -43,6 +43,23 @@
           <div class="stat card"><span>連続</span><strong><span id="streak">0</span>日</strong></div>
         </div>
 
+        <div class="schedule-summary card">
+          <div class="schedule-title-row">
+            <div>
+              <p class="eyebrow">REVIEW SCHEDULE</p>
+              <h3>復習スケジュール</h3>
+            </div>
+            <span id="currentDateLabel" class="pill"></span>
+          </div>
+          <div class="schedule-grid">
+            <div class="schedule-cell"><span>今日</span><strong id="scheduleToday">0</strong><small>問</small></div>
+            <div class="schedule-cell"><span>明日</span><strong id="scheduleTomorrow">0</strong><small>問</small></div>
+            <div class="schedule-cell"><span>7日以内</span><strong id="scheduleWeek">0</strong><small>問</small></div>
+            <div class="schedule-cell overdue"><span>期限超過</span><strong id="scheduleOverdue">0</strong><small>問</small></div>
+          </div>
+          <p class="mini-copy schedule-note">○・◎が続くと、1日後 → 3日後 → 7日後 → 14日後の順で復習間隔が広がります。△・×は翌日に戻ります。</p>
+        </div>
+
         <div class="buddy-strip card">
           <div class="buddy-mini">
             <img src="assets/bunny-happy.png" alt="うさぎキャラクター" />
@@ -124,6 +141,7 @@
           <div class="metric card"><span>直し待ち</span><strong id="metricRedo">0</strong></div>
           <div class="metric card"><span>A未処理</span><strong id="metricA">0</strong></div>
           <div class="metric card"><span>今日対象</span><strong id="metricToday">0</strong></div>
+          <div class="metric card"><span>期限超過</span><strong id="metricOverdue">0</strong></div>
           <div class="metric card"><span>定着</span><strong id="metricMastered">0</strong></div>
         </div>
 
@@ -206,6 +224,10 @@
       <label>教材
         <input name="book" placeholder="例：テーマ教材" />
       </label>
+      <label>最初にやる日
+        <input id="taskStartDate" name="startDate" type="date" required />
+      </label>
+      <p class="mini-copy">通常は今日のままでOKです。未来の日付を指定すると、その日に「今日のクエスト」へ出ます。</p>
       <button class="primary-btn" value="default" type="submit">追加する</button>
     </form>
   </dialog>
