@@ -226,6 +226,33 @@
           <p class="mini-copy sunday-rule">日曜：第1・3週＝最レ国語で2問／第2週＝公開で1問／第4・5週＝4問を目安にします。</p>
         </div>
 
+
+        <div class="card parent-card sync-card">
+          <div class="sync-head">
+            <div>
+              <p class="eyebrow">GOOGLE SHEETS</p>
+              <h3>学習データ連携</h3>
+            </div>
+            <span id="syncStatus" class="pill sync-status off">未設定</span>
+          </div>
+          <p class="mini-copy">問題の登録・修正はGoogleスプレッドシート、学習結果はこのアプリから自動で書き戻します。</p>
+          <label>Apps Script WebアプリURL
+            <input id="syncEndpoint" type="url" inputmode="url" placeholder="https://script.google.com/macros/s/…/exec" autocomplete="off" />
+          </label>
+          <label>連携キー
+            <input id="syncKey" type="password" placeholder="設定シートの sync_key" autocomplete="off" />
+          </label>
+          <div class="sync-actions">
+            <button id="saveSyncBtn" class="soft-btn" type="button">連携設定を保存</button>
+            <button id="syncNowBtn" class="primary-btn" type="button">スプレッドシートから同期</button>
+          </div>
+          <div class="sync-meta">
+            <span>最終同期</span>
+            <strong id="lastSyncLabel">未同期</strong>
+          </div>
+          <p class="mini-copy sync-note">連携設定はこのiPhoneだけに保存され、GitHubには書き込まれません。</p>
+        </div>
+
         <div class="card parent-card data-card">
           <h3>データ</h3>
           <div class="data-actions">
