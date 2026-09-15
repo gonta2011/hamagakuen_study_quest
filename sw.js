@@ -1,5 +1,5 @@
-const CACHE="study-quest-v11-navcache";
-const ASSETS=["./index.html", "./styles-v9.css", "./app-v9.js", "./manifest.webmanifest", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/studyquest-icon-v2-180.png", "./assets/study-buddies-room.png", "./assets/bunny-sheet.png", "./assets/panda-sheet.png", "./assets/bunny-calm.png", "./assets/bunny-happy.png", "./assets/bunny-cheer.png", "./assets/bunny-worried.png", "./assets/panda-calm.png", "./assets/panda-happy.png", "./assets/panda-cheer.png", "./assets/panda-worried.png"];
+const CACHE="study-quest-v12-syncbuttons";
+const ASSETS=["./index.html", "./styles-v9.css?v=11", "./app-v9.js?v=11", "./manifest.webmanifest?v=5", "./icons/icon-192.png", "./icons/icon-512.png", "./icons/studyquest-icon-v2-180.png", "./assets/study-buddies-room.png", "./assets/bunny-sheet.png", "./assets/panda-sheet.png", "./assets/bunny-calm.png", "./assets/bunny-happy.png", "./assets/bunny-cheer.png", "./assets/bunny-worried.png", "./assets/panda-calm.png", "./assets/panda-happy.png", "./assets/panda-cheer.png", "./assets/panda-worried.png"];
 
 self.addEventListener("install",e=>{
   self.skipWaiting();
@@ -31,10 +31,8 @@ self.addEventListener("fetch",e=>{
     return;
   }
 
-  if(
-    u.origin===self.location.origin &&
-    (u.pathname.endsWith("/styles-v9.css") || u.pathname.endsWith("/app-v9.js"))
-  ){
+  if(u.origin===self.location.origin &&
+     (u.pathname.endsWith("/styles-v9.css") || u.pathname.endsWith("/app-v9.js"))){
     e.respondWith(
       fetch(req,{cache:"no-store"})
         .then(r=>{
